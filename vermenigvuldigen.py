@@ -48,8 +48,14 @@ def prep_exercise():
     '''
     prepare exercise
     '''
-
+    
+    pos_answer = ['J', 'JA', 'Y', 'YES']
+    
     spec_table = int( input( 'Wil je oefenen met een specifieke tafel (1=ja, 0=nee)? ' ) )
+    do_divide = input( 'Wil je delen oefenen (J/N)? ' )
+    multi = True
+    if do_divide.upper() in pos_answer: multi = False
+    
     
     if spec_table == 1:
         prac_tables_str = str( input( 'Welke tafel(s) wil je oefenen (a=allemaal)? ' ) )
@@ -70,7 +76,7 @@ def prep_exercise():
                     #print(randtable)
                     print(f'Dat -> {prac_tables_spl[0]} <- snap ik niet, we zullen de tafel van {randtable} oefenen.')
                     prac_tables = [randtable]
-                
+            
         # setup the multiplications
         first_fact = np.zeros((len(prac_tables),11), dtype=int )
         second_fact = np.zeros((len(prac_tables),11), dtype=int )
@@ -81,8 +87,9 @@ def prep_exercise():
             second_fact[i,:]    = prac_tables[i]
         first_fact  = np.ravel(first_fact)    
         second_fact = np.ravel(second_fact)
+            
         
-        return first_fact, second_fact
+        return first_fact, second_fact, multi
     else:
         # do 10 random multiplications
         first_fact = np.copy( first_fact_all )
@@ -90,24 +97,36 @@ def prep_exercise():
         second_fact = np.copy( first_fact_all )
         np.random.shuffle( second_fact )
         
-        return first_fact, second_fact
+        return first_fact, second_fact, multi
 
 
-def do_exercise(first_fact, second_fact):
+def do_exercise(first_fact, second_fact, multi):
     
     from ascii_art import print_ascii_art
     
     print('We beginnen eraan!')
     
-    correct_results = first_fact * second_fact
+    if not multi:
+        # divisions
+        dividend = first_fact * second_fact
+        dividor  = second_fact
+        correct_results = first_fact
+        first_fact = dividend
+        second_fact = dividor
+    else:
+        # multiplications
+        correct_results = first_fact * second_fact
     
     err_idx         = np.linspace(0,len(correct_results)-1,len(correct_results), dtype=int)
     your_res        = np.ones_like(correct_results, dtype=int)*(-1000)
+    
+    sign = 'x'
+    if multi != 1: sign = ':'
     while not np.array_equal(correct_results, your_res):
         for idx,i in enumerate(err_idx):
             good_input = False
             while not good_input:
-                inp = input(f'{first_fact[i]} x {second_fact[i]} = ' )
+                inp = input(f'{first_fact[i]} {sign} {second_fact[i]} = ' )
                 try:
                     your_res[i] = int(inp)
                     good_input = True
@@ -124,6 +143,7 @@ def do_exercise(first_fact, second_fact):
                 print(f'Aj, {len(err_idx)} foutjes gemaakt, die doen we nog eens...')
             elif len(err_idx) == 1:
                 print(f'Aj, {len(err_idx)} foutje gemaakt, die doen we nog eens...')
+        
                 
 def finish_exercise(username):
     '''
@@ -155,11 +175,9 @@ if __name__ == '__main__':
     continue_exe = True
     while continue_exe:
         # prepare exercise
-        first_fact, second_fact = prep_exercise()
+        first_fact, second_fact, multi = prep_exercise()
         # execute exercise
-        do_exercise(first_fact, second_fact)
+        do_exercise(first_fact, second_fact, multi)
         # finish or do another round
         continue_exe = finish_exercise(username)
         
-    #prep_exercise()
-
