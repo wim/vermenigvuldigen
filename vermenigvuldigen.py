@@ -35,10 +35,12 @@ def greet_user():
         print(f' Hallo {username}! Blij je te zien!')
         print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
     else:
-        statsf = open(stats_file, 'r')
+        statsf = open(stats_file, 'a')
         print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
         print(f' Hallo {username}! Blij je weer te zien!')
         print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        
+        
     
     return username, statsf
 
@@ -88,8 +90,6 @@ def prep_exercise():
         first_fact  = np.ravel(first_fact)    
         second_fact = np.ravel(second_fact)
             
-        
-        return first_fact, second_fact, multi
     else:
         # do 10 random multiplications
         first_fact = np.copy( first_fact_all )
@@ -97,14 +97,17 @@ def prep_exercise():
         second_fact = np.copy( first_fact_all )
         np.random.shuffle( second_fact )
         
-        return first_fact, second_fact, multi
+    return first_fact, second_fact, multi
 
 
-def do_exercise(first_fact, second_fact, multi):
+def do_exercise(first_fact, second_fact, multi, statsf):
     
     from ascii_art import print_ascii_art
+    from datetime import datetime
     
     print('We beginnen eraan!')
+    statsf.write(f'Exercise started on: {datetime.today()}\n')
+    
     
     if not multi:
         # divisions
@@ -120,19 +123,23 @@ def do_exercise(first_fact, second_fact, multi):
     err_idx         = np.linspace(0,len(correct_results)-1,len(correct_results), dtype=int)
     your_res        = np.ones_like(correct_results, dtype=int)*(-1000)
     
+    
+    
     sign = 'x'
     if multi != 1: sign = ':'
     while not np.array_equal(correct_results, your_res):
         for idx,i in enumerate(err_idx):
             good_input = False
             while not good_input:
-                inp = input(f'{first_fact[i]} {sign} {second_fact[i]} = ' )
+                exe = f'{first_fact[i]} {sign} {second_fact[i]} = '
+                inp = input(exe )
                 try:
                     your_res[i] = int(inp)
                     good_input = True
                 except:
                     print(f'Hmm, dat snap ik niet: {inp}. Probeer nog eens:')
-
+            statsf.write(f'{exe} {your_res[i]}\n')
+            
         if np.array_equal(correct_results, your_res):
             print('Goed zo, je hebt alles juist!')
             print_ascii_art()
@@ -164,7 +171,7 @@ def finish_exercise(username):
         print(f'Dat snap ik niet {username}, we zullen stoppen voor nu.')
         print('Daaag, tot de volgende keer!')
         return False
-
+        
         
 
 if __name__ == '__main__':
@@ -177,7 +184,9 @@ if __name__ == '__main__':
         # prepare exercise
         first_fact, second_fact, multi = prep_exercise()
         # execute exercise
-        do_exercise(first_fact, second_fact, multi)
+        do_exercise(first_fact, second_fact, multi, statsf)
         # finish or do another round
         continue_exe = finish_exercise(username)
         
+    statsf.close()
+    
