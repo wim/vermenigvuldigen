@@ -9,8 +9,25 @@ This is a temporary script file.
 
 import numpy as np
 import sys
+import datetime
 
 first_fact_all = np.linspace(0,10,11, dtype=np.int8)
+
+def new_yaml_timing(mult):
+    """
+    return empty dict for the requested multiplication exercise
+    """
+    mult_dict = {str(mult): {'date':[], 'timing': []}}
+    return mult_dict
+
+def new_yaml_file(username):
+    """
+    create a new (almost empty) yaml file that contains the timings of different exercises
+    """
+
+    yaml_dict = {'username':username, 'timings':new_yaml_timing(str(1))}
+    
+    return yaml_dict
 
 
 def greet_user():
@@ -20,6 +37,7 @@ def greet_user():
     import os
     
     import getpass
+    import yaml
     
     username = getpass.getuser()
     
@@ -27,22 +45,34 @@ def greet_user():
     if not os.path.exists(multi_dir):
         os.mkdir(multi_dir)
     stats_file = multi_dir+f'{username}.stats'
+    stats2_file = multi_dir+f'{username}_mult.yaml'
     # find a file in the user directory with data about past exercises.
     # if none found, make a new file
     if not os.path.isfile(stats_file):
         statsf = open(stats_file, 'w')
-        print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        print(f' Hallo {username}! Blij je te zien!')
-        print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        again = ''
     else:
         statsf = open(stats_file, 'a')
-        print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        print(f' Hallo {username}! Blij je weer te zien!')
-        print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        again = 'weer '
+    if not os.path.isfile(stats2_file):
+        # yaml file needs to be created
+        stats = new_yaml_file(username)
+    else:
+        with open(stats2_file) as stream:
+            try:
+                stats = yaml.safe_load(stream)
+            except yaml.YAMLError as err:
+                print(err)
+        if stats is None: # guard against empty file
+            stats = new_yaml_file(username)
+
         
+    print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    print(f' Hallo {username}! Blij je {again}te zien!')
+    print(f'=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
         
     
-    return username, statsf
+    return username, statsf, stats, stats2_file
 
 
 
@@ -51,6 +81,7 @@ def prep_exercise():
     prepare exercise
     '''
     
+    single_table = False
     pos_answer = ['J', 'JA', 'Y', 'YES']
     
     spec_table = int( input( 'Wil je oefenen met een specifieke tafel (1=ja, 0=nee)? ' ) )
@@ -70,6 +101,7 @@ def prep_exercise():
             if len(prac_tables_spl) > 1:
                 prac_tables = [int(t) for t in prac_tables_spl]
             else:
+                single_table = True
                 try:
                     prac_tables = [int(prac_tables_spl[0])]
                     #print(prac_tables)
@@ -97,25 +129,28 @@ def prep_exercise():
         second_fact = np.copy( first_fact_all )
         np.random.shuffle( second_fact )
         
-    return first_fact, second_fact, multi
+    return first_fact, second_fact, multi, single_table
 
 
 def do_exercise(first_fact, second_fact, multi, statsf):
     
     from ascii_art import print_ascii_art
     from datetime import datetime
+    import time
+    
     
     print('We beginnen eraan!')
     statsf.write(f'Exercise started on: {datetime.today()}\n')
+    t0 = time.time()
     
     
     if not multi:
         # divisions
-        dividend = first_fact * second_fact
-        dividor  = second_fact
+        dividend        = first_fact * second_fact
+        dividor         = second_fact
         correct_results = first_fact
-        first_fact = dividend
-        second_fact = dividor
+        first_fact      = dividend
+        second_fact     = dividor
     else:
         # multiplications
         correct_results = first_fact * second_fact
@@ -124,7 +159,7 @@ def do_exercise(first_fact, second_fact, multi, statsf):
     your_res        = np.ones_like(correct_results, dtype=int)*(-1000)
     
     
-    
+    nmult = len(your_res)
     sign = 'x'
     if multi != 1: sign = ':'
     while not np.array_equal(correct_results, your_res):
@@ -142,7 +177,6 @@ def do_exercise(first_fact, second_fact, multi, statsf):
             
         if np.array_equal(correct_results, your_res):
             print('Goed zo, je hebt alles juist!')
-            print_ascii_art()
             break
         else:
             err_idx = np.nonzero(correct_results - your_res)[0]
@@ -150,6 +184,13 @@ def do_exercise(first_fact, second_fact, multi, statsf):
                 print(f'Aj, {len(err_idx)} foutjes gemaakt, die doen we nog eens...')
             elif len(err_idx) == 1:
                 print(f'Aj, {len(err_idx)} foutje gemaakt, die doen we nog eens...')
+    
+    t1 = time.time()
+    dt = t1 - t0
+    print(f'Totale tijd voor de hele oefening: {dt:8.3f} sec')
+    print(f'Gemiddelde tijd per vermenigvuldiging/deling: {dt/float(nmult):8.3f} sec')
+    print_ascii_art()
+    return dt
         
                 
 def finish_exercise(username):
@@ -176,15 +217,45 @@ def finish_exercise(username):
 
 if __name__ == '__main__':
     
+    import yaml
+    import datetime
+
     # first greet user
-    username, statsf = greet_user()
+    username, statsf, stats, stats2_file = greet_user()
+    print(stats)
 
     continue_exe = True
     while continue_exe:
         # prepare exercise
-        first_fact, second_fact, multi = prep_exercise()
+        first_fact, second_fact, multi, single_table = prep_exercise()
         # execute exercise
-        do_exercise(first_fact, second_fact, multi, statsf)
+        dexe = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        texe = do_exercise(first_fact, second_fact, multi, statsf)
+        if single_table:
+            print(first_fact, second_fact, multi)
+            table_value = str(second_fact[0])
+            # add to correct dict of stats, if dict does not exist, add a new one
+            if 'timings' in stats:
+                if table_value in stats['timings']:
+                    # add new timing to current table
+                    stats['timings'][table_value]['timing'].append(texe)
+                    stats['timings'][table_value]['date'].append(dexe)
+                    print(stats['timings'][table_value])
+                else:
+                    # current table value not practised before, add anew
+                    new_timing_table = new_yaml_timing(table_value)
+                    print(new_timing_table)
+                    print(new_timing_table[table_value])
+                    stats['timings'][table_value] = new_timing_table[table_value]
+                    print(stats['timings'][table_value])
+                    stats['timings'][table_value]['timing'].append(texe)
+                    stats['timings'][table_value]['date'].append(dexe)
+                    
+            # write stats to yaml file
+            with open(stats2_file,'w') as outf:
+                yaml.dump(stats, outf, default_flow_style=False)
+
+
         # finish or do another round
         continue_exe = finish_exercise(username)
         
