@@ -88,9 +88,9 @@ def prep_exercise():
     pos_answer = ['J', 'JA', 'Y', 'YES']
     
     spec_table = int( input( 'Wil je oefenen met een specifieke tafel (1=ja, 0=nee)? ' ) )
-    do_divide = input( 'Wil je delen oefenen (J/N)? ' )
+    do_divide = input( 'Wil je delen oefenen (1=ja, 0=nee)? ' )
     do_multi = True
-    if do_divide.upper() in pos_answer: do_multi = False
+    if do_divide.upper() in pos_answer or do_divide == 1: do_multi = False
     
     
     if spec_table == 1:
