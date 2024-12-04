@@ -34,14 +34,19 @@ def greet_user():
     '''
     get the user name and load statistics of previous exercises he/she made
     '''
-    import os
+    import os, platform
     
     import getpass
     import yaml
     
     username = getpass.getuser()
     
-    multi_dir = f'/home/{username}/.multi/'
+    platf = platform.system()
+
+    if platf == 'Windows':
+        multi_dir = os.path.expanduser('~')+'\\.multi\\'
+    else:
+        multi_dir = f'/home/{username}/.multi/'
     if not os.path.exists(multi_dir):
         os.mkdir(multi_dir)
     stats_file = multi_dir+f'{username}.stats'
